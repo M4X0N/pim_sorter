@@ -19,6 +19,10 @@ import shutil
 import time
 import uuid
 
+from PIL import Image
+from PIL.ExifTags import TAGS
+import re
+
 # dict like, easy to use class, to avoid the hassle with global vars
 g = argparse.Namespace(
     drag = False,
@@ -82,6 +86,7 @@ g = argparse.Namespace(
         'f': 'fullscreen',
         'q': 'quit',
         'Q': 'saveq',
+        'S': 'store',
         'x': 'delete',
         'X': 'deleteb',
         'w': 'zoom_fit',
@@ -146,6 +151,73 @@ def delete(delta=0):
 
         move_index(delta)
 
+# Here I add some my stuff
+# This function sends file into subfolder ./YEAR/MONTH
+# TODO TODO TODO
+def store(delta=0):
+    path = g.paths.pop(g.index)
+
+    # Check if physical existing
+    if os.path.exists(path):
+        image = Image.open(path)
+        exifdata = image.getexif()
+        for tag_id in exifdata:
+            tag = TAGS.get(tag_id, tag_id)
+            data = exifdata.get(tag_id)
+            if isinstance(data, bytes):
+                data = data.decode()
+            if tag == "DateTime":
+                break
+        date = data.split(" ")[0].split(":")
+        year = date[0]
+        month = date[1]
+
+        name = re.findall("\/[\w.-]*\.\w*$", path)[0]
+        newpath = re.findall("\/.*\/", path)[0]
+        newpath = f"{newpath}{year}/{month}"
+        subdir = data
+
+        if not os.path.isdir(newpath):
+            os.makedirs(newpath)
+
+        shutil.move(path, newpath + name)
+        print(':: stored:', newpath + name)
+    else:
+        print(':: removed', path, 'from the selection')
+
+    """
+    if not os.path.isdir(TRASH):
+        os.mkdir(TRASH)
+        os.mkdir(TRASH + '/files')
+        os.mkdir(TRASH + '/info')
+
+    path = g.paths.pop(g.index)
+    # Check if physical existing
+    if os.path.exists(path):
+        name = uuid.uuid4().hex
+        info = (
+            '[Trash Info]\n'
+            'Path={}\n'
+            'DeletionDate={}'
+            ).format(path, time.strftime('%Y-%m-%dT%H:%M:%S'))
+
+        f = open(TRASH + '/info/' + name + '.trashinfo', 'w')
+        f.write(info)
+        f.close()
+        shutil.move(path, TRASH + '/files/' + name)
+        print(':: trashed:', path)
+    else:
+        print(':: removed', path, 'from the selection')
+    """
+
+    if not len(g.paths):
+        print(':: quitting, as no files remain')
+        quit()
+    else:
+        if g.index == len(g.paths):
+            g.index -= 1
+
+        move_index(delta)
 
 def drag():
     g.drag = True
@@ -578,6 +650,7 @@ Actions = {
     'right': (scroll, Gtk.ScrollType.STEP_FORWARD,  True),
 
     'delete': (delete, 0),
+    'store':  (store, 0),
     'deleteb': (delete, -1),
     'drag': (drag,),
     'fullscreen': (toggle_fullscreen,),
