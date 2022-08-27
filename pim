@@ -82,11 +82,11 @@ g = argparse.Namespace(
         'T': 'faster',
 
         'b': 'status',
-        's': 'slideshow',
+        'S': 'slideshow',
         'f': 'fullscreen',
         'q': 'quit',
         'Q': 'saveq',
-        'S': 'store',
+        's': 'store',
         'x': 'delete',
         'X': 'deleteb',
         'w': 'zoom_fit',
@@ -110,6 +110,7 @@ BUTTONS = {
 HOME = os.getenv('HOME')
 XDG_DATA_HOME   = os.getenv('XDG_DATA_HOME')   or HOME + '/.local/share'
 TRASH = XDG_DATA_HOME + '/Trash'
+# REDEFINED !
 
 
 def cursor_hide():
@@ -118,16 +119,19 @@ def cursor_hide():
 
 
 def delete(delta=0):
-    # https://specifications.freedesktop.org/trash-spec/trashspec-1.0.html
+    path = g.paths.pop(g.index)
+    newpath = re.findall("\/.*\/", path)[0]
+    newpath = f"{newpath}trash"
+    TRASH = newpath
+
     if not os.path.isdir(TRASH):
         os.mkdir(TRASH)
         os.mkdir(TRASH + '/files')
         os.mkdir(TRASH + '/info')
 
-    path = g.paths.pop(g.index)
     # Check if physical existing
     if os.path.exists(path):
-        name = uuid.uuid4().hex
+        name = re.findall("\/[\w.-]*\.\w*$", path)[0]
         info = (
             '[Trash Info]\n'
             'Path={}\n'
@@ -184,31 +188,6 @@ def store(delta=0):
         print(':: stored:', newpath + name)
     else:
         print(':: removed', path, 'from the selection')
-
-    """
-    if not os.path.isdir(TRASH):
-        os.mkdir(TRASH)
-        os.mkdir(TRASH + '/files')
-        os.mkdir(TRASH + '/info')
-
-    path = g.paths.pop(g.index)
-    # Check if physical existing
-    if os.path.exists(path):
-        name = uuid.uuid4().hex
-        info = (
-            '[Trash Info]\n'
-            'Path={}\n'
-            'DeletionDate={}'
-            ).format(path, time.strftime('%Y-%m-%dT%H:%M:%S'))
-
-        f = open(TRASH + '/info/' + name + '.trashinfo', 'w')
-        f.write(info)
-        f.close()
-        shutil.move(path, TRASH + '/files/' + name)
-        print(':: trashed:', path)
-    else:
-        print(':: removed', path, 'from the selection')
-    """
 
     if not len(g.paths):
         print(':: quitting, as no files remain')
