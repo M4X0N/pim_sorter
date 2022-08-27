@@ -1,4 +1,5 @@
 ### pim, a Python image viewer with vim-like keybindings
+### pim_sorter. Pim based image sorter
 
 All options / bindings can be found at the top of the file in the `__init__` function.
 
